@@ -1,1 +1,844 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>EcoFinds — Sustainable Second-Hand Marketplace</title>
+
+  <!-- Tailwind for quick prototyping -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide icons -->
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --accent1: #059669;
+      --accent2: #06b6d4;
+      --muted: #6b7280;
+      --card-bg: #ffffff;
+      --glass: rgba(255,255,255,0.7);
+    }
+    [data-theme="dark"]{
+      --card-bg:#0b1220; --muted:#9aa4b2; --glass: rgba(255,255,255,0.02);
+      background: linear-gradient(180deg,#071024,#041022);
+      color: #e6eef6;
+    }
+    html,body{ height:100%; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+    body{ background: linear-gradient(180deg,#f3fbf9 0%, #ffffff 60%); color:#0f172a; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+    .card-elev{ background:var(--card-bg); border-radius:14px; box-shadow: 0 10px 30px rgba(2,6,23,0.08); overflow:hidden; }
+    .img-cover{ object-fit:cover; width:100%; height:100%; display:block; transition: transform .4s ease; }
+    .img-cover:hover{ transform: scale(1.05); }
+    .ribbon{ position:absolute; left:12px; top:12px; padding:6px 10px; background: linear-gradient(90deg,var(--accent1),var(--accent2)); color:white; font-weight:700; font-size:12px; border-radius:8px; transform: rotate(-6deg); box-shadow:0 12px 28px rgba(2,6,23,0.12); }
+    .small-muted{ color:var(--muted); font-size:0.95rem; }
+    .chip{ display:inline-flex; align-items:center; gap:.5rem; padding:.35rem .7rem; border-radius:999px; background:#f1f5f9; cursor:pointer; font-size:.9rem; color:var(--muted); border:1px solid transparent; }
+    .chip.active{ background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:white; }
+    .glass{ background:var(--glass); border-radius:12px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); border: 1px solid rgba(255,255,255,0.6); }
+    @media (max-width:900px){ .hide-sm{ display:none; } }
+    /* toast */
+    #toast{ position:fixed; right:20px; bottom:24px; z-index:80; transition:transform .25s, opacity .25s; transform:translateY(12px); opacity:0; }
+    #toast.show{ transform:translateY(0); opacity:1; }
+  </style>
+</head>
+<body data-theme="light">
+
+  <div id="app" class="max-w-7xl mx-auto p-6">
+
+    <!-- Header -->
+    <header class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full flex items-center justify-center" style="background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:white; font-weight:700;">E</div>
+        <div>
+          <div class="text-2xl font-extrabold">EcoFinds</div>
+          <div class="text-sm small-muted">Sustainable second-hand marketplace</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3 w-full lg:w-auto">
+        <input id="search" placeholder="Search products, e.g. 'denim jacket'" class="px-4 py-2 w-full lg:w-96 rounded-full border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-100" />
+        <select id="sort" class="p-2 rounded-full border hidden md:block">
+          <option value="newest">Newest</option>
+          <option value="price-asc">Price ↑</option>
+          <option value="price-desc">Price ↓</option>
+          <option value="rating">Top rated</option>
+        </select>
+        <button id="addProductBtn" class="px-4 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-400 text-white shadow">+ Add</button>
+        <button id="cartBtn" class="relative px-3 py-2 rounded-full bg-white border"><span data-lucide="shopping-cart" class="w-5 h-5"></span><span id="cartBadge" class="ml-2 text-sm font-semibold"></span></button>
+        <button id="profileBtn" class="px-3 py-2 rounded-full border">Sign in</button>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="bg-gradient-to-br from-white to-green-50 rounded-2xl p-6 mb-8 glass">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+        <div class="lg:col-span-2">
+          <h1 class="text-4xl lg:text-5xl font-extrabold">Find pre-loved gems — responsibly</h1>
+          <p class="text-gray-600 mt-3 max-w-2xl">Buy and sell quality second-hand goods. Reduce waste, save money and support a circular economy.</p>
+          <div class="mt-5 flex gap-3">
+            <button id="heroShop" class="px-6 py-3 rounded-full text-white" style="background:linear-gradient(90deg,var(--accent1),var(--accent2));">Shop curated</button>
+            <button id="heroSell" class="px-6 py-3 rounded-full border">Sell an item</button>
+          </div>
+        </div>
+
+        <div class="card-elev p-4">
+          <div class="text-sm small-muted">Featured</div>
+          <div class="mt-3 flex items-center gap-3">
+            <div class="w-28 h-28 rounded overflow-hidden bg-gray-100"><img id="featuredImg" src="" class="w-full h-full img-cover" alt=""></div>
+            <div>
+              <div id="featuredTitle" class="font-semibold">—</div>
+              <div id="featuredPrice" class="text-green-700 font-extrabold mt-1">₹ —</div>
+              <div class="mt-2"><button id="featuredView" class="px-3 py-1 bg-green-600 text-white rounded">View</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="mb-6">
+      <div class="flex flex-wrap gap-3 items-center">
+        <div class="chip active" data-cat="All">All</div>
+        <div class="chip" data-cat="Accessories">Accessories</div>
+        <div class="chip" data-cat="Furniture">Furniture</div>
+        <div class="chip" data-cat="Electronics">Electronics</div>
+        <div class="chip" data-cat="Clothing">Clothing</div>
+        <div class="chip" data-cat="Home">Home</div>
+        <div class="chip" data-cat="Music">Music</div>
+      </div>
+    </section>
+
+    <!-- Main feed & side -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div class="lg:col-span-3 space-y-6">
+        <!-- Product grid -->
+        <div id="productFeed" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+        <!-- Pagination simplified -->
+        <div id="pagination" class="flex items-center justify-center gap-2"></div>
+      </div>
+
+      <!-- Sidebar -->
+      <aside class="hidden lg:block">
+        <div class="glass p-4 card-elev">
+          <div class="font-semibold mb-2">Your Dashboard</div>
+          <div class="small-muted mb-3">Quick actions</div>
+          <button id="myListingsBtn" class="w-full py-2 mb-2 rounded border">My Listings</button>
+          <button id="previousPurchasesBtn" class="w-full py-2 mb-2 rounded border">Previous Purchases</button>
+          <button id="exportBtn" class="w-full py-2 mb-2 rounded border">Export Data</button>
+          <input id="importFile" type="file" accept=".json" class="hidden" />
+          <button id="importBtn" class="w-full py-2 rounded border">Import Data</button>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Modals -->
+    <!-- Add/Edit Product Modal -->
+    <div id="addProductModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 id="addModalTitle" class="text-xl font-bold">Add New Product</h3>
+          <button onclick="closeModal('addProductModal')" class="text-gray-500">✕</button>
+        </div>
+        <form id="addProductForm" class="space-y-3">
+          <input id="prodTitle" placeholder="Product Title" class="w-full p-3 border rounded" required />
+          <textarea id="prodDescription" placeholder="Description" class="w-full p-3 border rounded" rows="3"></textarea>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <select id="prodCategory" class="p-3 border rounded">
+              <option>Accessories</option><option>Furniture</option><option>Electronics</option><option>Clothing</option><option>Home</option><option>Music</option>
+            </select>
+            <input id="prodPrice" type="number" step="0.01" placeholder="Price (INR)" class="p-3 border rounded" required />
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input id="prodImageUrl" placeholder="Image URL (or pick file below)" class="p-3 border rounded" />
+            <input id="prodImageFile" type="file" accept="image/*" class="p-2" />
+          </div>
+          <div class="flex justify-end gap-3">
+            <button type="button" onclick="closeModal('addProductModal')" class="px-4 py-2 border rounded">Cancel</button>
+            <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Save Listing</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-4xl p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rounded overflow-hidden bg-gray-100" style="min-height:320px;">
+          <img id="detailImage" src="" class="img-cover w-full h-full" alt="">
+        </div>
+        <div>
+          <div class="flex items-start justify-between">
+            <div>
+              <h2 id="detailTitle" class="text-2xl font-bold">Title</h2>
+              <div id="detailCategory" class="small-muted">Category</div>
+            </div>
+            <div id="detailPrice" class="text-2xl font-extrabold text-green-700">₹ —</div>
+          </div>
+          <p id="detailDesc" class="small-muted mt-4">Description</p>
+          <div class="mt-6 flex gap-3">
+            <button id="detailAddBtn" class="px-4 py-2 rounded text-white" style="background:linear-gradient(90deg,var(--accent1),var(--accent2));">Add to Cart</button>
+            <button id="detailBuyBtn" class="px-4 py-2 rounded border">Buy Now</button>
+            <button id="detailWishBtn" class="px-4 py-2 rounded border">♡ Wishlist</button>
+          </div>
+
+          <div class="mt-6">
+            <h4 class="font-semibold">Reviews</h4>
+            <div id="detailReviews" class="mt-3 space-y-3"></div>
+            <div id="detailReviewForm" class="mt-3"></div>
+          </div>
+        </div>
+        <div class="col-span-full text-right">
+          <button onclick="closeModal('detailModal')" class="text-gray-500">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cartModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-2xl p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">Cart</h3>
+          <button onclick="closeModal('cartModal')" class="text-gray-500">✕</button>
+        </div>
+        <div id="cartItems" class="mt-4 space-y-3 max-h-72 overflow-auto"></div>
+        <div class="mt-4 flex items-center justify-between">
+          <div class="font-bold">Total: ₹<span id="cartTotal">0</span></div>
+          <div class="flex gap-2">
+            <button onclick="closeModal('cartModal')" class="px-4 py-2 border rounded">Continue</button>
+            <button id="checkoutBtn" class="px-4 py-2 bg-blue-600 text-white rounded">Checkout</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- My Listings Modal -->
+    <div id="myListingsModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-3xl p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">My Listings</h3>
+          <button onclick="closeModal('myListingsModal')" class="text-gray-500">✕</button>
+        </div>
+        <div id="myListingsList" class="mt-4 space-y-3 max-h-72 overflow-auto"></div>
+      </div>
+    </div>
+
+    <!-- Previous Purchases Modal -->
+    <div id="prevPurchasesModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-3xl p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold">Previous Purchases</h3>
+          <button onclick="closeModal('prevPurchasesModal')" class="text-gray-500">✕</button>
+        </div>
+        <div id="prevPurchasesList" class="mt-4 space-y-3 max-h-72 overflow-auto"></div>
+      </div>
+    </div>
+
+    <!-- Profile / Auth Modal -->
+    <div id="authModal" class="fixed inset-0 hidden items-center justify-center z-50 bg-black/40 p-4">
+      <div class="bg-white rounded-2xl w-full max-w-md p-6">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xl font-bold" id="authTitle">Sign in / Sign up</h3>
+          <button onclick="closeModal('authModal')" class="text-gray-500">✕</button>
+        </div>
+
+        <form id="authForm" class="mt-4 space-y-3">
+          <input id="authEmail" type="email" placeholder="Email" class="w-full p-3 border rounded" required />
+          <input id="authPassword" type="password" placeholder="Password" class="w-full p-3 border rounded" required />
+          <input id="authName" placeholder="Display name (optional / for sign-up)" class="w-full p-3 border rounded" />
+
+          <div class="flex items-center gap-3">
+            <input id="authAvatarUrl" placeholder="Avatar image URL (optional)" class="p-3 border rounded flex-1" />
+            <input id="authAvatarFile" type="file" accept="image/*" class="p-2" />
+          </div>
+
+          <div class="flex justify-between items-center">
+            <div class="small-muted text-sm">New? put display name + password and click Sign up</div>
+            <div class="flex gap-2">
+              <button type="button" onclick="closeModal('authModal')" class="px-4 py-2 border rounded">Cancel</button>
+              <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded" id="authSubmit">Sign up / Sign in</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden px-4 py-2 rounded shadow-lg bg-emerald-600 text-white">Saved</div>
+
+    <!-- Footer -->
+    <footer class="mt-12 text-center small-muted">
+      © EcoFinds — Empowering sustainable consumption
+    </footer>
+  </div>
+
+<script>
+/* ------------------------------
+  EcoFinds single-file application
+  Persistence: localStorage
+-------------------------------*/
+
+const LS = {
+  USERS: 'ef_users_v2',
+  SESSION: 'ef_session_v2',
+  PRODUCTS: 'ef_products_v2',
+  CART: 'ef_cart_v2',
+  PURCHASES: 'ef_purchases_v2',
+  REVIEWS: 'ef_reviews_v2'
+};
+
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+function load(key, fallback){ try{ const s = localStorage.getItem(key); return s ? JSON.parse(s) : fallback; }catch(e){ return fallback; } }
+function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+function nowISO(){ return new Date().toISOString(); }
+function toast(msg, ms=1600){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.remove('hidden'); t.classList.add('show'); setTimeout(()=>{ t.classList.remove('show'); t.classList.add('hidden'); }, ms); }
+
+/* ---------- Seed data ---------- */
+function seedIfEmpty(){
+  if(!load(LS.PRODUCTS)){
+    const list = [
+      { productId: 'p1', title:'Vintage Leather Backpack', category:'Accessories', price:2600, description:'Full-grain leather backpack with rich patina.', imageUrl:'https://images.unsplash.com/photo-1526178612767-3f5b1a2d4f93?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p2', title:'Solid Teak Coffee Table', category:'Furniture', price:4200, description:'Hand-finished teak coffee table.', imageUrl:'https://images.unsplash.com/photo-1549187774-b4e9a36b4f9f?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p3', title:'Retro Turntable', category:'Electronics', price:3300, description:'Analog turntable for vinyl lovers.', imageUrl:'https://images.unsplash.com/photo-1511379938547-c1f69419868d?q=80&w=1200', ownerId:'user_demo', createdAt: nowISO(), sold:false },
+      { productId: 'p4', title:'Denim Jacket — M', category:'Clothing', price:900, description:'Comfortable denim jacket, lightly worn.', imageUrl:'https://images.unsplash.com/photo-1520975698519-01be1cc1a3cc?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p5', title:'E-Reader Paperwhite', category:'Electronics', price:4800, description:'High-res e-ink display, good battery.', imageUrl:'https://images.unsplash.com/photo-1532012197267-da84d127e765?q=80&w=1200', ownerId:'user_demo', createdAt: nowISO(), sold:false },
+      { productId: 'p6', title:'Minimalist Desk Lamp', category:'Home', price:1200, description:'Brass-accent desk lamp with warm LEDs.', imageUrl:'https://images.unsplash.com/photo-1524758631624-e2822e304c36?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p7', title:'Handmade Ceramic Vase', category:'Home', price:700, description:'Unique glaze, small imperfections add charm.', imageUrl:'https://images.unsplash.com/photo-1472396961693-142e6e269027?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p8', title:'Acoustic Guitar (3/4)', category:'Music', price:3500, description:'Compact acoustic - ideal for learners.', imageUrl:'https://images.unsplash.com/photo-1511376777868-611b54f68947?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p9', title:'Retro Poster Set', category:'Home', price:1500, description:'Three framed posters with vintage style.', imageUrl:'https://images.unsplash.com/photo-1425321395722-b1dd54a97cf3?q=80&w=1200', ownerId:'user_demo', createdAt: nowISO(), sold:false },
+      { productId: 'p10', title:'Smartphone — 2yrs', category:'Electronics', price:9000, description:'Well cared for, original charger included.', imageUrl:'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p11', title:'Cookware Set (5 pcs)', category:'Home', price:2400, description:'Non-stick cookware set with lids.', imageUrl:'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false },
+      { productId: 'p12', title:'Vintage Wristwatch', category:'Accessories', price:5200, description:'Mechanical watch, serviced recently.', imageUrl:'https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?q=80&w=1200', ownerId:'seller_ana', createdAt: nowISO(), sold:false }
+    ];
+    save(LS.PRODUCTS, list);
+  }
+
+  if(!load(LS.USERS)){
+    const users = [
+      { userId:'seller_ana', email:'seller@example.com', password:'password', username:'seller_ana', avatarUrl:'' },
+      { userId:'user_demo', email:'demo@example.com', password:'password', username:'eco_raj', avatarUrl:'' }
+    ];
+    save(LS.USERS, users);
+  }
+
+  if(!load(LS.CART)) save(LS.CART, {});
+  if(!load(LS.PURCHASES)) save(LS.PURCHASES, {});
+  if(!load(LS.REVIEWS)) save(LS.REVIEWS, {});
+}
+seedIfEmpty();
+
+/* ---------- State ---------- */
+let State = {
+  products: load(LS.PRODUCTS, []),
+  users: load(LS.USERS, []),
+  session: load(LS.SESSION, null),
+  cart: load(LS.CART, {}),
+  purchases: load(LS.PURCHASES, {}),
+  reviews: load(LS.REVIEWS, {}),
+  ui: { q:'', category:'All', sort:'newest', page:1, perPage:9 }
+};
+
+/* ---------- Utilities ---------- */
+function persistAll(){
+  save(LS.PRODUCTS, State.products);
+  save(LS.USERS, State.users);
+  save(LS.CART, State.cart);
+  save(LS.PURCHASES, State.purchases);
+  save(LS.REVIEWS, State.reviews);
+}
+function currentUserId(){ return State.session ? State.session.userId : null; }
+function requireAuth(actionName){ if(!State.session){ openModal('authModal'); toast('Please sign in to ' + actionName); return false; } return true; }
+
+/* ---------- Rendering ---------- */
+function renderAll(){
+  State.products = load(LS.PRODUCTS, []);
+  State.users = load(LS.USERS, []);
+  State.cart = load(LS.CART, {});
+  State.purchases = load(LS.PURCHASES, {});
+  State.reviews = load(LS.REVIEWS, {});
+
+  renderFeatured();
+  renderFeed();
+  updateCartBadge();
+  lucide.createIcons();
+}
+
+/* Product feed rendering with filters + search */
+function renderFeed(){
+  const container = document.getElementById('productFeed');
+  container.innerHTML = '';
+
+  let list = State.products.slice();
+
+  // search
+  const q = (document.getElementById('search').value || '').trim().toLowerCase();
+  if(q) list = list.filter(p => (p.title + ' ' + p.description + ' ' + p.category).toLowerCase().includes(q));
+
+  // category chips
+  const catEl = document.querySelector('.chip.active');
+  const cat = catEl ? catEl.dataset.cat : 'All';
+  if(cat && cat !== 'All') list = list.filter(p => p.category === cat);
+
+  // sort
+  const sort = document.getElementById('sort').value;
+  if(sort === 'price-asc') list.sort((a,b)=>a.price-b.price);
+  if(sort === 'price-desc') list.sort((a,b)=>b.price-a.price);
+  if(sort === 'rating') list.sort((a,b)=> (b.rating||0)-(a.rating||0));
+  if(sort === 'newest') list.sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+
+  if(list.length === 0){
+    container.innerHTML = '<div class="col-span-full text-center small-muted p-8">No products found</div>';
+    return;
+  }
+
+  list.forEach(p => {
+    const card = document.createElement('article');
+    card.className = 'card-elev';
+    card.innerHTML = `
+      <div class="relative">
+        ${p.sold ? '<div class="ribbon">SOLD</div>' : ''}
+        <div class="w-full h-48 bg-gray-100 overflow-hidden">
+          <img src="${p.imageUrl}" alt="${p.title}" class="img-cover w-full h-full" loading="lazy">
+        </div>
+      </div>
+      <div class="p-4">
+        <div class="flex items-start justify-between">
+          <div>
+            <h3 class="font-semibold">${escapeHtml(p.title)}</h3>
+            <div class="small-muted mt-1">${escapeHtml(p.category)}</div>
+          </div>
+          <div class="text-xl font-extrabold">₹ ${Number(p.price).toLocaleString()}</div>
+        </div>
+        <p class="small-muted mt-3 line-clamp-3">${escapeHtml(p.description)}</p>
+        <div class="mt-4 flex items-center gap-2">
+          <button class="px-3 py-1 border rounded view-btn" data-id="${p.productId}">View</button>
+          <button class="px-3 py-1 rounded text-white add-btn" style="background:linear-gradient(90deg,var(--accent1),var(--accent2));" data-id="${p.productId}">Add</button>
+          <div class="ml-auto small-muted">${(getAvgRating(p.productId) || '—')} ★</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  // attach handlers
+  container.querySelectorAll('.view-btn').forEach(b => b.addEventListener('click', e => openProductDetail(e.currentTarget.dataset.id)));
+  container.querySelectorAll('.add-btn').forEach(b => b.addEventListener('click', e => addToCart(e.currentTarget.dataset.id)));
+}
+
+/* Featured */
+function renderFeatured(){
+  const first = State.products[0];
+  if(!first) return;
+  document.getElementById('featuredImg').src = first.imageUrl;
+  document.getElementById('featuredTitle').textContent = first.title;
+  document.getElementById('featuredPrice').textContent = '₹ ' + Number(first.price).toLocaleString();
+  document.getElementById('featuredView').onclick = ()=> openProductDetail(first.productId);
+}
+
+/* ---------- Product detail ---------- */
+let currentDetailId = null;
+function openProductDetail(productId){
+  const p = State.products.find(x => x.productId === productId);
+  if(!p) return;
+  currentDetailId = productId;
+  document.getElementById('detailImage').src = p.imageUrl;
+  document.getElementById('detailTitle').textContent = p.title;
+  document.getElementById('detailCategory').textContent = p.category;
+  document.getElementById('detailPrice').textContent = '₹ ' + Number(p.price).toLocaleString();
+  document.getElementById('detailDesc').textContent = p.description;
+
+  // reviews
+  renderDetailReviews(productId);
+
+  // buttons
+  document.getElementById('detailAddBtn').onclick = ()=> { addToCart(productId); closeModal('detailModal'); };
+  document.getElementById('detailBuyBtn').onclick = ()=> { addToCart(productId); openModal('cartModal'); };
+  document.getElementById('detailWishBtn').onclick = ()=> { toggleWishlist(productId); };
+
+  openModal('detailModal');
+}
+function renderDetailReviews(productId){
+  const wrap = document.getElementById('detailReviews');
+  wrap.innerHTML = '';
+  const revs = State.reviews[productId] || [];
+  if(!revs.length) wrap.innerHTML = '<div class="small-muted">No reviews yet</div>';
+  else revs.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'p-2 bg-gray-50 rounded';
+    el.innerHTML = `<div class="flex items-center justify-between"><div class="font-semibold">${escapeHtml(r.reviewerName)}</div><div class="text-yellow-500">★ ${r.rating}</div></div><div class="small-muted mt-1">${escapeHtml(r.text)}</div>`;
+    wrap.appendChild(el);
+  });
+
+  // review form only if purchased
+  const userId = currentUserId();
+  const purchased = userId && (State.purchases[userId] || []).some(o => o.items.some(i => i.productId === productId));
+  const formWrap = document.getElementById('detailReviewForm');
+  formWrap.innerHTML = '';
+  if(userId && purchased){
+    formWrap.innerHTML = `<div class="flex gap-2"><select id="revRating" class="p-2 border rounded"><option>5</option><option>4</option><option>3</option></select><input id="revText" placeholder="Write a review..." class="p-2 border rounded flex-1"></div><div class="text-right mt-2"><button class="px-3 py-1 bg-green-600 text-white rounded" id="submitReviewBtn">Submit</button></div>`;
+    document.getElementById('submitReviewBtn').onclick = ()=> {
+      const rating = Number(document.getElementById('revRating').value);
+      const text = document.getElementById('revText').value.trim();
+      if(!text) return toast('Please write a short review');
+      const u = State.users.find(x=>x.userId === userId);
+      State.reviews[productId] = State.reviews[productId] || [];
+      State.reviews[productId].push({ reviewerId: userId, reviewerName: u.username, rating, text, createdAt: nowISO() });
+      save(LS.REVIEWS, State.reviews);
+      renderDetailReviews(productId);
+      toast('Thanks for your review!');
+    };
+  } else if(!userId) {
+    formWrap.innerHTML = `<div class="small-muted">Sign in to leave a review</div>`;
+  } else {
+    formWrap.innerHTML = `<div class="small-muted">Buy this product to be able to review it</div>`;
+  }
+}
+
+/* ---------- Cart ---------- */
+function addToCart(productId){
+  const userKey = State.session ? State.session.userId : 'guest';
+  State.cart = load(LS.CART, {});
+  State.cart[userKey] = State.cart[userKey] || [];
+  const arr = State.cart[userKey];
+  const existing = arr.find(i => i.productId === productId);
+  if(existing) existing.qty += 1;
+  else {
+    const p = State.products.find(x => x.productId === productId);
+    arr.push({ id: uid('ci'), productId, title: p.title, price: p.price, qty: 1 });
+  }
+  save(LS.CART, State.cart);
+  updateCartBadge();
+  toast('Added to cart');
+}
+
+function updateCartBadge(){
+  const userKey = State.session ? State.session.userId : 'guest';
+  const all = load(LS.CART, {});
+  const list = all[userKey] || [];
+  const count = list.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('cartBadge').textContent = count ? `(${count})` : '';
+}
+
+function openCartModal(){
+  const userKey = State.session ? State.session.userId : 'guest';
+  const all = load(LS.CART, {});
+  const list = all[userKey] || [];
+  const wrap = document.getElementById('cartItems');
+  wrap.innerHTML = '';
+  if(!list.length) wrap.innerHTML = '<div class="small-muted">Your cart is empty.</div>';
+  let total = 0;
+  list.forEach(item => {
+    total += item.price * item.qty;
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between bg-gray-50 p-3 rounded';
+    row.innerHTML = `<div><div class="font-semibold">${escapeHtml(item.title)}</div><div class="small-muted">₹ ${item.price} × ${item.qty}</div></div><div><button class="px-3 py-1 border rounded remove-cart-btn" data-id="${item.id}">Remove</button></div>`;
+    wrap.appendChild(row);
+  });
+  document.getElementById('cartTotal').textContent = total;
+  // remove handlers
+  wrap.querySelectorAll('.remove-cart-btn').forEach(b => b.addEventListener('click', e => {
+    const id = e.currentTarget.dataset.id;
+    State.cart = load(LS.CART, {});
+    State.cart[userKey] = State.cart[userKey].filter(x=>x.id !== id);
+    save(LS.CART, State.cart);
+    openCartModal(); updateCartBadge();
+  }));
+  openModal('cartModal');
+}
+
+function checkout(){
+  if(!requireAuth('checkout')) return;
+  const userId = currentUserId();
+  State.cart = load(LS.CART, {});
+  const items = State.cart[userId] || [];
+  if(!items.length) return toast('Cart is empty');
+  // Save purchase
+  State.purchases[userId] = State.purchases[userId] || [];
+  const purchaseObj = { purchaseId: uid('pur'), items: items.map(i=>({ productId:i.productId, title:i.title, price:i.price, qty:i.qty })), total: items.reduce((s,i)=>s+i.price*i.qty,0), purchasedAt: nowISO() };
+  State.purchases[userId].push(purchaseObj);
+  // Mark products as sold
+  items.forEach(ci => {
+    const idx = State.products.findIndex(p => p.productId === ci.productId);
+    if(idx >= 0) State.products[idx].sold = true;
+  });
+  // clear cart
+  State.cart[userId] = [];
+  save(LS.PURCHASES, State.purchases);
+  save(LS.PRODUCTS, State.products);
+  save(LS.CART, State.cart);
+  openModal('prevPurchasesModal'); renderPrevPurchases();
+  closeModal('cartModal');
+  renderAll();
+  toast('Checkout complete — thank you!');
+}
+
+/* ---------- My Listings ---------- */
+function openMyListings(){
+  if(!requireAuth('view your listings')) return;
+  const userId = currentUserId();
+  const list = State.products.filter(p => p.ownerId === userId);
+  const wrap = document.getElementById('myListingsList');
+  wrap.innerHTML = '';
+  if(!list.length) wrap.innerHTML = '<div class="small-muted">No listings yet.</div>';
+  list.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 bg-gray-50 p-3 rounded';
+    row.innerHTML = `<div class="w-16 h-16 overflow-hidden rounded"><img src="${p.imageUrl}" class="w-full h-full object-cover"></div><div class="flex-1"><div class="font-semibold">${escapeHtml(p.title)}</div><div class="small-muted">₹ ${p.price}</div></div><div class="flex gap-2"><button class="px-3 py-1 border edit-listing" data-id="${p.productId}">Edit</button><button class="px-3 py-1 bg-red-500 text-white del-listing" data-id="${p.productId}">Delete</button></div>`;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll('.edit-listing').forEach(b => b.addEventListener('click', e => openEditListing(e.currentTarget.dataset.id)));
+  wrap.querySelectorAll('.del-listing').forEach(b => b.addEventListener('click', e => deleteListing(e.currentTarget.dataset.id)));
+  openModal('myListingsModal');
+}
+function deleteListing(productId){
+  if(!confirm('Delete listing?')) return;
+  State.products = State.products.filter(p => p.productId !== productId);
+  save(LS.PRODUCTS, State.products);
+  toast('Deleted');
+  openMyListings();
+  renderAll();
+}
+function openEditListing(productId){
+  const p = State.products.find(x => x.productId === productId);
+  if(!p) return;
+  openModal('addProductModal');
+  document.getElementById('addModalTitle').textContent = 'Edit Listing';
+  document.getElementById('prodTitle').value = p.title;
+  document.getElementById('prodDescription').value = p.description;
+  document.getElementById('prodCategory').value = p.category;
+  document.getElementById('prodPrice').value = p.price;
+  document.getElementById('prodImageUrl').value = p.imageUrl;
+  // mark form with data-edit-id
+  document.getElementById('addProductForm').dataset.editId = productId;
+}
+
+/* ---------- Add product (create & edit) ---------- */
+document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if(!requireAuth('create a listing')) return;
+  const title = document.getElementById('prodTitle').value.trim();
+  const desc = document.getElementById('prodDescription').value.trim();
+  const cat = document.getElementById('prodCategory').value;
+  const price = Number(document.getElementById('prodPrice').value || 0);
+  let imageUrl = document.getElementById('prodImageUrl').value.trim();
+  const file = document.getElementById('prodImageFile').files[0];
+  if(file){
+    // convert to base64 (local-only preview)
+    imageUrl = await fileToBase64(file);
+  }
+  if(!imageUrl) imageUrl = 'https://images.unsplash.com/photo-1526178612767-3f5b1a2d4f93?q=80&w=1200';
+  const editId = e.currentTarget.dataset.editId || null;
+  if(editId){
+    const idx = State.products.findIndex(x=>x.productId === editId);
+    if(idx>=0){
+      State.products[idx] = { ...State.products[idx], title, description:desc, category:cat, price, imageUrl };
+      delete e.currentTarget.dataset.editId;
+    }
+  } else {
+    const ownerId = currentUserId() || 'guest';
+    const p = { productId: uid('p'), title, description:desc, category:cat, price, imageUrl, ownerId, createdAt: nowISO(), sold:false };
+    State.products.unshift(p);
+  }
+  save(LS.PRODUCTS, State.products);
+  closeModal('addProductModal');
+  renderAll();
+  toast('Listing saved');
+});
+
+/* ---------- Auth (local) ---------- */
+document.getElementById('authForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('authEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('authPassword').value;
+  const name = document.getElementById('authName').value.trim();
+  const avatarUrl = document.getElementById('authAvatarUrl').value.trim();
+  const avatarFile = document.getElementById('authAvatarFile').files[0];
+  let avatarBase = avatarUrl || '';
+  if(avatarFile) avatarBase = await fileToBase64(avatarFile);
+
+  State.users = load(LS.USERS, []);
+  let user = State.users.find(u => u.email === email);
+  if(user){
+    // sign in
+    if(user.password !== pass){ toast('Wrong password'); return; }
+    State.session = { userId: user.userId, email: user.email, username: user.username, avatarUrl: user.avatarUrl || '' };
+    save(LS.SESSION, State.session);
+    toast('Signed in');
+  } else {
+    // sign up
+    if(!name) return toast('Enter display name to sign up');
+    const newUser = { userId: uid('u'), email, password: pass, username: name, avatarUrl: avatarBase };
+    State.users.push(newUser);
+    save(LS.USERS, State.users);
+    State.session = { userId: newUser.userId, email: newUser.email, username: newUser.username, avatarUrl: newUser.avatarUrl || '' };
+    save(LS.SESSION, State.session);
+    toast('Account created & signed in');
+  }
+  closeModal('authModal');
+  updateAuthUI();
+  renderAll();
+});
+
+function updateAuthUI(){
+  const btn = document.getElementById('profileBtn');
+  State.session = load(LS.SESSION, null);
+  if(State.session){
+    btn.textContent = State.session.username || State.session.email;
+    btn.onclick = () => openProfile();
+  } else {
+    btn.textContent = 'Sign in';
+    btn.onclick = () => openModal('authModal');
+  }
+}
+
+/* Profile modal & editing */
+function openProfile(){
+  if(!requireAuth('view your profile')) return;
+  const userId = currentUserId();
+  const user = State.users.find(u=>u.userId === userId);
+  if(!user) return;
+  // prefill auth modal inputs for editing (reuse auth modal)
+  document.getElementById('authEmail').value = user.email;
+  document.getElementById('authPassword').value = user.password;
+  document.getElementById('authName').value = user.username;
+  document.getElementById('authAvatarUrl').value = user.avatarUrl || '';
+  document.getElementById('authTitle').textContent = 'Edit Profile';
+  openModal('authModal');
+  // override submit to behave as profile save
+  const f = document.getElementById('authForm');
+  f.onsubmit = async (e) => {
+    e.preventDefault();
+    user.username = document.getElementById('authName').value.trim();
+    const newAvatarUrl = document.getElementById('authAvatarUrl').value.trim();
+    const file = document.getElementById('authAvatarFile').files[0];
+    if(file) user.avatarUrl = await fileToBase64(file);
+    else if(newAvatarUrl) user.avatarUrl = newAvatarUrl;
+    save(LS.USERS, State.users);
+    State.session.username = user.username; State.session.avatarUrl = user.avatarUrl || '';
+    save(LS.SESSION, State.session);
+    updateAuthUI();
+    closeModal('authModal');
+    toast('Profile updated');
+    // restore auth form behavior
+    f.onsubmit = authFormDefault;
+  };
+}
+
+/* store original auth behavior to restore */
+const authFormDefault = document.getElementById('authForm').onsubmit;
+
+/* ---------- My previous purchases ---------- */
+function renderPrevPurchases(){
+  if(!requireAuth('view purchases')) return;
+  const userId = currentUserId();
+  const arr = State.purchases[userId] || [];
+  const wrap = document.getElementById('prevPurchasesList');
+  wrap.innerHTML = '';
+  if(!arr.length) wrap.innerHTML = '<div class="small-muted">No previous purchases</div>';
+  arr.forEach(order => {
+    const block = document.createElement('div');
+    block.className = 'p-3 bg-gray-50 rounded';
+    block.innerHTML = `<div class="font-semibold">Order ${order.purchaseId} • ₹ ${order.total}</div><div class="small-muted text-xs">${new Date(order.purchasedAt).toLocaleString()}</div><div class="mt-2 space-y-2">${order.items.map(i=>`<div class="flex items-center justify-between"><div>${escapeHtml(i.title)} × ${i.qty}</div><div>₹ ${i.price}</div></div>`).join('')}</div>`;
+    wrap.appendChild(block);
+  });
+  openModal('prevPurchasesModal');
+}
+
+/* ---------- Wishlist (simple local boolean via purchases/wishlist) ---------- */
+function toggleWishlist(productId){
+  if(!requireAuth('add to wishlist')) return;
+  const userId = currentUserId();
+  State.purchases[userId] = State.purchases[userId] || []; // reuse purchases object for per-user keys exist
+  // Implementing a dedicated wishlist would be similar; for demo, just toast
+  toast('Added to wishlist (demo)');
+}
+
+/* ---------- Export / Import ---------- */
+document.getElementById('exportBtn').addEventListener('click', ()=> {
+  const data = { users: State.users, products: State.products, cart: load(LS.CART, {}), purchases: State.purchases, reviews: State.reviews };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ecofinds_export.json'; a.click();
+  toast('Exported data');
+});
+document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e)=> {
+  const f = e.target.files[0];
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const obj = JSON.parse(reader.result);
+      if(obj.products) { State.products = obj.products; save(LS.PRODUCTS, obj.products); }
+      if(obj.users) { State.users = obj.users; save(LS.USERS, obj.users); }
+      if(obj.cart) save(LS.CART, obj.cart);
+      if(obj.purchases) save(LS.PURCHASES, obj.purchases);
+      if(obj.reviews) save(LS.REVIEWS, obj.reviews);
+      toast('Imported data'); renderAll();
+    } catch(err){ toast('Import failed: invalid JSON'); }
+  };
+  reader.readAsText(f);
+});
+
+/* ---------- Helpers ---------- */
+function openModal(id){ const el=document.getElementById(id); el.style.display='flex'; el.classList.remove('hidden'); }
+function closeModal(id){ const el=document.getElementById(id); el.style.display='none'; el.classList.add('hidden'); }
+function escapeHtml(s=''){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fileToBase64(file){ return new Promise((res,rej)=>{ const r=new FileReader(); r.onload = ()=> res(r.result); r.onerror = rej; r.readAsDataURL(file); }); }
+function getAvgRating(productId){
+  const revs = State.reviews[productId] || []; if(!revs.length) return 0;
+  return revs.reduce((s,r)=>s + (r.rating||0),0) / revs.length;
+}
+
+/* ---------- UI wiring ---------- */
+document.getElementById('search').addEventListener('input', ()=> renderFeed());
+document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', (e)=>{
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  e.currentTarget.classList.add('active');
+  renderFeed();
+}));
+document.getElementById('sort').addEventListener('change', ()=> renderFeed());
+document.getElementById('addProductBtn').addEventListener('click', ()=> {
+  if(!requireAuth('add product')) return;
+  document.getElementById('addModalTitle').textContent = 'Add New Product';
+  document.getElementById('addProductForm').reset();
+  delete document.getElementById('addProductForm').dataset.editId;
+  openModal('addProductModal');
+});
+document.getElementById('heroSell').addEventListener('click', ()=> document.getElementById('addProductBtn').click());
+document.getElementById('heroShop').addEventListener('click', ()=> window.scrollTo({ top:500, behavior:'smooth' }));
+document.getElementById('cartBtn').addEventListener('click', ()=> openCartModal());
+document.getElementById('checkoutBtn').addEventListener('click', checkout);
+document.getElementById('myListingsBtn').addEventListener('click', openMyListings);
+document.getElementById('previousPurchasesBtn').addEventListener('click', renderPrevPurchases);
+document.getElementById('profileBtn').addEventListener('click', ()=> openModal('authModal'));
+
+/* updateAuthUI initially */
+updateAuthUI();
+
+/* restore auth submit default after initial definition */
+document.getElementById('authForm').onsubmit = authFormDefault;
+
+/* Deep-link: if hash #p=productId, open detail */
+(function handleHashOnLoad(){
+  const h = location.hash || '';
+  if(h.startsWith('#p=')){
+    const id = h.split('=')[1];
+    openProductDetail(id);
+  }
+})();
+
+/* On page ready render */
+renderAll();
+lucide.createIcons();
+
+/* finishing touches: keyboard shortcuts (optional) */
+window.addEventListener('keydown', (e) => {
+  if(e.key === 'k' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); document.getElementById('search').focus(); }
+});
+
+/* Expose for debugging */
+window.EcoFinds = { State, renderAll, openProductDetail, addToCart, openMyListings, checkout };
+
+</script>
+</body>
+</html>
 
